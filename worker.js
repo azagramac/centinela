@@ -41,7 +41,8 @@ export default {
       country,
       doh: false,
       dnssec: false,
-      ech: isEch
+      ech: isEch,
+      envBindings: Object.keys(env || {})
     });
   }
 
@@ -817,11 +818,12 @@ async function analyzeThreatIntelligence(targetUrlStr, hostname, env, opts = {})
   }
 
   // 5. Google Safe Browsing (Only if checked by user and secret configured)
+  const gsbKey = (env && env.GSB_API_KEY) || (typeof globalThis !== "undefined" && globalThis.GSB_API_KEY) || (typeof GSB_API_KEY !== "undefined" ? GSB_API_KEY : "");
   if (opts.enableGsb) {
-    if (env && env.GSB_API_KEY) {
+    if (gsbKey) {
       totalFeedsChecked++;
       try {
-        const gsbRes = await checkGoogleSafeBrowsing(targetUrlStr, env.GSB_API_KEY);
+        const gsbRes = await checkGoogleSafeBrowsing(targetUrlStr, gsbKey);
         providers.googleSafeBrowsing = gsbRes;
         if (gsbRes.matches && gsbRes.matches.length > 0) totalDetections += gsbRes.matches.length;
       } catch {
@@ -835,11 +837,12 @@ async function analyzeThreatIntelligence(targetUrlStr, hostname, env, opts = {})
   }
 
   // 6. VirusTotal v3 (Only if checked by user and secret configured)
+  const vtKey = (env && env.VIRUSTOTAL_API_KEY) || (typeof globalThis !== "undefined" && globalThis.VIRUSTOTAL_API_KEY) || (typeof VIRUSTOTAL_API_KEY !== "undefined" ? VIRUSTOTAL_API_KEY : "");
   if (opts.enableVt) {
-    if (env && env.VIRUSTOTAL_API_KEY) {
+    if (vtKey) {
       totalFeedsChecked++;
       try {
-        const vtRes = await checkVirusTotal(hostname, env.VIRUSTOTAL_API_KEY);
+        const vtRes = await checkVirusTotal(hostname, vtKey);
         providers.virusTotal = vtRes;
         if (vtRes.maliciousCount > 0) totalDetections += vtRes.maliciousCount;
       } catch {
