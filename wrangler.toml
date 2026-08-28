@@ -2,11 +2,9 @@ name = "centinela"
 main = "worker.js"
 compatibility_date = "2024-08-28"
 
-[observability]
+[observability.logs]
 enabled = true
+invocation_logs = true
 
-# Optional: Cloudflare KV storage for persisting shareable reports by ID
-# (Create via Dashboard or with 'npx wrangler kv namespace create SCANS_KV')
-# [[kv_namespaces]]
-# binding = "SCANS_KV"
-# id = "YOUR_KV_NAMESPACE_ID"
+[observability.traces]
+enabled = false
