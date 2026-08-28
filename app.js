@@ -92,9 +92,22 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function setupEventListeners() {
-  // Input clear button
+  // Force lowercase in real-time & manage clear button
   urlInput.addEventListener("input", () => {
+    const start = urlInput.selectionStart;
+    const end = urlInput.selectionEnd;
+    urlInput.value = urlInput.value.toLowerCase();
+    if (start !== null && end !== null) {
+      urlInput.setSelectionRange(start, end);
+    }
     clearBtn.hidden = !urlInput.value;
+  });
+
+  urlInput.addEventListener("paste", () => {
+    setTimeout(() => {
+      urlInput.value = urlInput.value.toLowerCase().trim();
+      clearBtn.hidden = !urlInput.value;
+    }, 0);
   });
 
   clearBtn.addEventListener("click", () => {
