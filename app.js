@@ -1,3 +1,40 @@
+// ============================================================================
+// Alphanumeric Scan Token Encoding / Decoding (URL-Safe Base64)
+// ============================================================================
+
+function encodeScanToken(domain, gsb, vt) {
+  try {
+    const payload = JSON.stringify({
+      u: domain.toLowerCase().trim(),
+      g: gsb ? 1 : 0,
+      v: vt ? 1 : 0
+    });
+    return btoa(unescape(encodeURIComponent(payload)))
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/, "");
+  } catch {
+    return "";
+  }
+}
+
+function decodeScanToken(token) {
+  try {
+    let b64 = token.replace(/-/g, "+").replace(/_/g, "/");
+    while (b64.length % 4) b64 += "=";
+    const json = decodeURIComponent(escape(atob(b64)));
+    const parsed = JSON.parse(json);
+    if (parsed && parsed.u) {
+      return {
+        target: parsed.u,
+        gsb: parsed.g === 1,
+        vt: parsed.v === 1
+      };
+    }
+  } catch {}
+  return null;
+}
+
 /**
  * Centinela — Frontend Application Logic
  * Automated Web Security & Legitimacy Assessment
@@ -154,14 +191,18 @@ function setupEventListeners() {
 
     const url = new URL(baseOrigin);
     const target = currentAssessmentData?.hostname || currentAssessmentData?.targetUrl || urlInput.value.trim();
+    const gsb = document.getElementById("check-gsb")?.checked || false;
+    const vt = document.getElementById("check-vt")?.checked || false;
+
     if (target) {
-      url.searchParams.set("url", target.toLowerCase());
-    }
-    if (document.getElementById("check-gsb")?.checked) {
-      url.searchParams.set("gsb", "true");
-    }
-    if (document.getElementById("check-vt")?.checked) {
-      url.searchParams.set("vt", "true");
+      const token = encodeScanToken(target, gsb, vt);
+      if (token) {
+        url.searchParams.set("s", token);
+      } else {
+        url.searchParams.set("url", target.toLowerCase());
+        if (gsb) url.searchParams.set("gsb", "true");
+        if (vt) url.searchParams.set("vt", "true");
+      }
     }
 
     navigator.clipboard.writeText(url.toString());
@@ -218,6 +259,20 @@ function setupEventListeners() {
 
 function checkUrlParams() {
   const params = new URLSearchParams(window.location.search);
+  const token = params.get("s") || params.get("q") || params.get("hash");
+
+  if (token) {
+    const decoded = decodeScanToken(token);
+    if (decoded && decoded.target) {
+      if (document.getElementById("check-gsb")) document.getElementById("check-gsb").checked = decoded.gsb;
+      if (document.getElementById("check-vt")) document.getElementById("check-vt").checked = decoded.vt;
+      urlInput.value = decoded.target.toLowerCase();
+      clearBtn.hidden = false;
+      startScan(decoded.target);
+      return;
+    }
+  }
+
   const scanId = params.get("id") || params.get("scan") || params.get("scanId");
   const target = params.get("url") || params.get("target");
   const gsb = params.get("gsb") === "true" || params.get("gsb") === "1";
