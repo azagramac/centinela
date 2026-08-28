@@ -302,25 +302,33 @@ async function startScan(target) {
       throw new Error(`Network connection to Worker failed: ${networkErr.message}. Check that WORKER_URL in app.js is reachable and deployed.`);
     });
 
+    const rawText = await resp.text().catch(readErr => {
+      throw new Error(`Failed to read Worker response: ${readErr.message}`);
+    });
+
     if (!resp.ok) {
       let errDetail = `Worker returned HTTP ${resp.status} (${resp.statusText})`;
       try {
-        const errJson = await resp.json();
+        const errJson = JSON.parse(rawText);
         if (errJson.error) errDetail = errJson.error;
       } catch {
-        const text = await resp.text();
-        if (text.includes("error code: 1042") || text.includes("error code: 1001")) {
-          errDetail = `Cloudflare Worker not found at ${WORKER_URL} (Cloudflare Error 1042). Make sure your Worker is deployed in Cloudflare and that WORKER_URL in app.js matches your deployed Worker URL.`;
-        } else if (text) {
-          errDetail = `Worker error: ${text.slice(0, 150)}`;
+        if (rawText.includes("error code: 1042") || rawText.includes("error code: 1001")) {
+          errDetail = `Cloudflare Worker route not active or unreachable at ${WORKER_URL}. Ensure Cloudflare Proxy (orange cloud) is enabled.`;
+        } else if (rawText.includes("404") || resp.status === 404) {
+          errDetail = `Endpoint ${WORKER_URL} returned 404. Ensure Cloudflare DNS Proxy (orange cloud) and Worker Routes are active.`;
+        } else if (rawText) {
+          errDetail = `Worker error (${resp.status}): ${rawText.slice(0, 150)}`;
         }
       }
       throw new Error(errDetail);
     }
 
-    const data = await resp.json().catch(() => {
-      throw new Error(`Worker returned invalid JSON response. Make sure the latest worker.js is deployed.`);
-    });
+    let data;
+    try {
+      data = JSON.parse(rawText);
+    } catch {
+      throw new Error(`Worker returned invalid JSON response: ${rawText.slice(0, 120)}`);
+    }
 
     clearInterval(pipelineTimer);
     // Mark all done
