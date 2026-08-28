@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Centinela — Automated Web Security & Legitimacy Analyzer</title>
+  <meta name="description" content="Independent cybersecurity assessment platform. Audits SSL/TLS, DNSSEC, HTTP headers, CSP, cookies, threat intelligence, and domain legitimacy." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="theme-dark">
+
+  <div class="app-container">
+    
+    <!-- Minimal Navigation Bar -->
+    <header class="top-nav">
+      <div class="brand" id="nav-brand" role="button" tabindex="0" title="Centinela Home">
+        <svg class="brand-icon" viewBox="0 0 40 40" width="26" height="26">
+          <circle cx="20" cy="20" r="17" fill="none" stroke="currentColor" stroke-width="2.5"/>
+          <circle cx="20" cy="20" r="4" fill="currentColor"/>
+          <line x1="20" y1="3" x2="20" y2="9" stroke="currentColor" stroke-width="2.5"/>
+          <line x1="20" y1="31" x2="20" y2="37" stroke="currentColor" stroke-width="2.5"/>
+          <line x1="3" y1="20" x2="9" y2="20" stroke="currentColor" stroke-width="2.5"/>
+          <line x1="31" y1="20" x2="37" y2="20" stroke="currentColor" stroke-width="2.5"/>
+        </svg>
+        <span class="brand-text">Centinela</span>
+      </div>
+      <div class="nav-links">
+                <button type="button" class="nav-diag-btn" id="nav-diag-btn" title="Your Browser Security Diagnostics">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+          <span>Client Diagnostics</span>
+        </button>
+        <span class="engine-tag">Security & Legitimacy Engine v2.0</span>
+        <a href="https://github.com/azagramac/centinela" target="_blank" rel="noopener noreferrer" class="nav-github">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+          </svg>
+        </a>
+      </div>
+    </header>
+
+    <!-- Client Browser Diagnostics (Cloudflare-style Encrypted-SNI & DoH test) -->
+    <div class="client-diag-panel" id="client-diag-panel" hidden>
+      <div class="client-diag-header">
+        <div class="diag-title-wrap">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--accent-teal)" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+          <h4>Your Browser & Client Security Posture</h4>
+        </div>
+        <button type="button" class="close-diag-btn" id="close-diag-btn">✕</button>
+      </div>
+
+      <p class="diag-desc">Live diagnostics of your current browser, transport cryptography, and DNS privacy capabilities.</p>
+
+      <div class="client-diag-grid">
+        <div class="diag-item-card" id="diag-card-dnssec">
+          <div class="diag-item-top">
+            <span class="diag-item-name">DNSSEC Validation</span>
+            <span class="diag-status-pill success" id="diag-dnssec-status">✓ ACTIVE</span>
+          </div>
+          <p class="diag-item-info">Protects against DNS cache poisoning and malicious IP redirection.</p>
+        </div>
+
+        <div class="diag-item-card" id="diag-card-doh">
+          <div class="diag-item-top">
+            <span class="diag-item-name">Secure DNS (DoH / DoT)</span>
+            <span class="diag-status-pill success" id="diag-doh-status">✓ ENCRYPTED</span>
+          </div>
+          <p class="diag-item-info">Encrypted DNS queries preventing ISP inspection or eavesdropping.</p>
+        </div>
+
+        <div class="diag-item-card" id="diag-card-tls13">
+          <div class="diag-item-top">
+            <span class="diag-item-name">TLS 1.3 Protocol</span>
+            <span class="diag-status-pill success" id="diag-tls-status">✓ SUPPORTED</span>
+          </div>
+          <p class="diag-item-info">Latest modern cryptographic transport encryption with forward secrecy.</p>
+        </div>
+
+        <div class="diag-item-card" id="diag-card-ech">
+          <div class="diag-item-top">
+            <span class="diag-item-name">Secure SNI / ECH</span>
+            <span class="diag-status-pill" id="diag-ech-status">✓ CAPABLE</span>
+          </div>
+          <p class="diag-item-info">Encrypted Client Hello (RFC 9460) hiding target server names from network snooping.</p>
+        </div>
+      </div>
+
+      <div class="client-env-meta" id="client-env-meta">
+        <!-- Injected via JS -->
+      </div>
+    </div>
+
+
+    <!-- SECTION 1: Google-style Minimalist Initial Search -->
+    <main class="hero-section" id="hero-section">
+      <div class="hero-inner">
+        <div class="hero-logo">
+          <svg class="hero-logo-mark" viewBox="0 0 80 80" width="64" height="64">
+            <circle cx="40" cy="40" r="34" fill="none" stroke="currentColor" stroke-width="4"/>
+            <circle cx="40" cy="40" r="8" fill="currentColor"/>
+            <line x1="40" y1="6" x2="40" y2="18" stroke="currentColor" stroke-width="4"/>
+            <line x1="40" y1="62" x2="40" y2="74" stroke="currentColor" stroke-width="4"/>
+            <line x1="6" y1="40" x2="18" y2="40" stroke="currentColor" stroke-width="4"/>
+            <line x1="62" y1="40" x2="74" y2="40" stroke="currentColor" stroke-width="4"/>
+          </svg>
+          <h1>Centinela</h1>
+        </div>
+
+        <p class="hero-tagline">Analyze a website's technical security and legitimacy before trusting it.</p>
+
+        <form id="scan-form" class="search-form" novalidate autocomplete="off">
+          <div class="search-bar">
+            <svg class="search-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input
+              id="url-input"
+              type="text"
+              inputmode="url"
+              placeholder="https://example.com or domain name"
+              aria-label="Target website to analyze"
+              autofocus
+            />
+            <button type="button" id="clear-btn" class="clear-btn" aria-label="Clear input" hidden>&times;</button>
+          </div>
+
+          <!-- API Quota Savers (Optional Deep Feeds) -->
+          <div class="api-options-bar">
+            <span class="api-options-label"></span>
+            <label class="api-checkbox-label">
+              <input type="checkbox" id="check-gsb" name="gsb" />
+              <span>Google Safe Browsing</span>
+            </label>
+            <label class="api-checkbox-label">
+              <input type="checkbox" id="check-vt" name="vt" />
+              <span>VirusTotal Multi-Engine</span>
+            </label>
+          </div>
+
+          <div class="search-actions">
+            <button type="submit" id="scan-btn" class="primary-btn">
+              <span>Analyze Website</span>
+            </button>
+          </div>
+        </form>
+
+        <div class="quick-examples">
+          <span class="quick-label">Try a domain:</span>
+          <button type="button" class="quick-chip" data-url="google.com">google.com</button>
+          <button type="button" class="quick-chip" data-url="cloudflare.com">cloudflare.com</button>
+          <button type="button" class="quick-chip" data-url="github.com">github.com</button>
+          <button type="button" class="quick-chip" data-url="wikipedia.org">wikipedia.org</button>
+        </div>
+
+        <div class="hero-features">
+          <span>TLS 1.3 / SSL</span>
+          <span class="dot">·</span>
+          <span>DNSSEC</span>
+          <span class="dot">·</span>
+          <span>Security Headers & CSP</span>
+          <span class="dot">·</span>
+          <span>Threat Intelligence</span>
+          <span class="dot">·</span>
+          <span>Email DMARC</span>
+          <span class="dot">·</span>
+          <span>Legitimacy Engine</span>
+        </div>
+
+        <!-- Quick Client & Browser Security Card -->
+        <div class="client-mini-card" id="client-mini-card">
+          <div class="client-mini-header">
+            <span class="client-mini-title">🖥️ Your Browser</span>
+            <span class="client-mini-badge" id="client-mini-badge">Checking environment...</span>
+          </div>
+          <div class="client-mini-grid">
+            <div class="c-mini-item"><span>DNSSEC</span> <strong id="mini-dnssec">Testing...</strong></div>
+            <div class="c-mini-item"><span>Secure DNS</span> <strong id="mini-doh">Testing...</strong></div>
+            <div class="c-mini-item"><span>TLS 1.3</span> <strong id="mini-tls">Testing...</strong></div>
+            <div class="c-mini-item"><span>Secure SNI</span> <strong id="mini-ech">Testing...</strong></div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- SECTION 2: Multi-Stage Asynchronous Progress Loader -->
+    <section id="loading-section" class="loading-section" hidden aria-live="polite">
+      <div class="radar-container">
+        <div class="radar-visual">
+          <div class="radar-sweep"></div>
+          <div class="radar-ring r1"></div>
+          <div class="radar-ring r2"></div>
+          <div class="radar-ring r3"></div>
+          <div class="radar-center-blip"></div>
+        </div>
+        <h2 class="loading-title">Conducting In-Depth Security Assessment</h2>
+        <p class="loading-target" id="loading-target-url"></p>
+      </div>
+
+      <div class="pipeline-progress" id="pipeline-progress">
+        <!-- Live steps injected by JS -->
+      </div>
+    </section>
+
+    <!-- SECTION 3: Full Professional Security Assessment Report -->
+    <section id="results-section" class="results-section" hidden>
+
+      <!-- Target Bar & Action Controls -->
+      <div class="target-header-bar">
+        <div class="target-identity">
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <span class="target-label">ASSESSED TARGET</span>
+            <span class="scan-id-chip" id="scan-id-chip" title="Click to copy unique Scan ID">
+              <span id="scan-id-text">ID: cnt-xxxx</span>
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            </span>
+          </div>
+          <h2 class="target-hostname" id="report-hostname">example.com</h2>
+          <span class="target-timestamp" id="report-timestamp">Scanned on Aug 28, 2026</span>
+        </div>
+        <div class="target-controls">
+          <button type="button" class="action-btn secondary" id="copy-report-btn">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            <span>Copy Link</span>
+          </button>
+          <button type="button" class="action-btn primary" id="new-scan-btn">
+            <span>New Analysis</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Executive Overview Card -->
+      <div class="assessment-hero-card">
+        <div class="gauge-column">
+          <div class="gauge-widget" id="gauge-widget">
+            <svg viewBox="0 0 220 220">
+              <circle class="gauge-bg" cx="110" cy="110" r="92"></circle>
+              <circle class="gauge-bar" id="gauge-bar" cx="110" cy="110" r="92"></circle>
+            </svg>
+            <div class="gauge-value-wrap">
+              <span class="gauge-score-num" id="gauge-score-num">0</span>
+              <span class="gauge-score-max">/ 100</span>
+              <span class="gauge-rating-badge" id="gauge-rating-badge">ANALYZING</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="summary-column">
+          <div class="seal-badge-row">
+            <div class="trust-seal" id="trust-seal">
+              <span class="seal-icon" id="seal-icon">✓</span>
+              <span class="seal-title" id="seal-title">SAFE</span>
+            </div>
+            <span class="seal-subtitle" id="seal-subtitle">No immediate threat indicators</span>
+          </div>
+
+          <!-- Tri-Metric Row -->
+          <div class="tri-metrics-grid">
+            <div class="metric-card">
+              <span class="metric-label">TECHNICAL SECURITY</span>
+              <span class="metric-value" id="metric-sec-score">0 / 100</span>
+              <span class="metric-desc">Transport, DNS, Headers, Config</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">LEGITIMACY EVIDENCE</span>
+              <span class="metric-value" id="metric-leg-score">0 / 100</span>
+              <span class="metric-desc">Domain age, ownership, identity</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">GLOBAL TRUST LEVEL</span>
+              <span class="metric-value highlight" id="metric-trust-level">MEDIUM</span>
+              <span class="metric-desc">Synthesis & threat intel check</span>
+            </div>
+          </div>
+
+          <!-- Executive Summary Text -->
+          <p class="executive-summary" id="executive-summary-text"></p>
+
+          <!-- Confidence Ceiling Alert -->
+          <div class="ceiling-notice" id="ceiling-notice" hidden>
+            <div class="ceiling-icon">ℹ</div>
+            <div class="ceiling-content">
+              <strong>Score Confidence Ceiling: <span id="ceiling-max-score">90</span> / 100</strong>
+              <p id="ceiling-reason">Ownership is not independently verified in official registry.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Critical & Categorized Findings Section -->
+            <!-- Historical Comparison & Evolution Widget -->
+      <div class="history-compare-card" id="history-compare-card" hidden>
+        <div class="compare-card-header">
+          <div class="compare-title-wrap">
+            <span class="compare-icon">📈</span>
+            <div>
+              <h4>Historical Evolution & Improvement Comparison</h4>
+              <span class="compare-sub" id="compare-subtitle">Comparing with previous scan on Aug 20, 2026</span>
+            </div>
+          </div>
+          <div class="score-delta-badge" id="score-delta-badge">+0 pts</div>
+        </div>
+
+        <div class="compare-metrics-grid">
+          <div class="compare-metric-col">
+            <span class="comp-col-label">PREVIOUS SCAN</span>
+            <span class="comp-col-score" id="comp-prev-score">65 / 100</span>
+            <span class="comp-col-date" id="comp-prev-id">cnt-prev-id</span>
+          </div>
+          <div class="compare-arrow">➔</div>
+          <div class="compare-metric-col">
+            <span class="comp-col-label">CURRENT SCAN</span>
+            <span class="comp-col-score current" id="comp-curr-score">92 / 100</span>
+            <span class="comp-col-date" id="comp-curr-id">cnt-curr-id</span>
+          </div>
+        </div>
+
+        <div class="compare-categories-diff" id="compare-categories-diff">
+          <!-- Diff items injected by JS -->
+        </div>
+
+        <div class="resolved-findings-wrap" id="resolved-findings-wrap" hidden>
+          <div class="resolved-title">✓ Resolved Issues Since Previous Scan:</div>
+          <ul class="resolved-list" id="resolved-list"></ul>
+        </div>
+      </div>
+
+      <section class="findings-section" id="findings-section">
+        <div class="section-title-bar">
+          <h3>Assessment Findings</h3>
+          <div class="findings-counts" id="findings-counts">
+            <span class="cnt-badge crit" id="cnt-crit">0 Critical</span>
+            <span class="cnt-badge high" id="cnt-high">0 High</span>
+            <span class="cnt-badge med" id="cnt-med">0 Med</span>
+            <span class="cnt-badge low" id="cnt-low">0 Low</span>
+          </div>
+        </div>
+        <div class="findings-list" id="findings-list">
+          <!-- Injected dynamically -->
+        </div>
+      </section>
+
+      <!-- Security Posture: Category Bars & Radar Chart -->
+      <section class="posture-section">
+        <div class="section-title-bar">
+          <h3>Security Posture & Category Weights</h3>
+          <div class="view-toggles">
+            <button type="button" class="toggle-btn active" id="toggle-bars-btn">Category Scores</button>
+            <button type="button" class="toggle-btn" id="toggle-radar-btn">Radar Profile</button>
+          </div>
+        </div>
+
+        <div class="posture-grid">
+          <div class="posture-bars-col" id="posture-bars-col">
+            <div class="category-bars-list" id="category-bars-list">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <div class="posture-radar-col" id="posture-radar-col">
+            <div class="radar-chart-wrap" id="radar-chart-wrap">
+              <svg viewBox="0 0 360 360" class="radar-svg" id="radar-svg"></svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- "Why this score?" Breakdown Drawer -->
+        <div class="score-breakdown-card">
+          <div class="breakdown-header" id="breakdown-header" role="button" tabindex="0">
+            <h4>How was this score calculated? (Mathematical Weighting & Deductions)</h4>
+            <span class="chevron-icon">▼</span>
+          </div>
+          <div class="breakdown-body" id="breakdown-body">
+            <table class="breakdown-table">
+              <thead>
+                <tr>
+                  <th>Category</th>
+                  <th>Weight</th>
+                  <th>Category Score</th>
+                  <th>Contribution</th>
+                </tr>
+              </thead>
+              <tbody id="breakdown-table-body">
+                <!-- Rows injected -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Deep Technical Inspection Accordions -->
+      <section class="deep-inspection-section">
+        <div class="section-title-bar">
+          <h3>Deep Technical Audit & Evidence</h3>
+        </div>
+
+        <div class="accordion-group">
+
+          <!-- 1. TLS & Certificate -->
+          <div class="accordion-card" id="acc-tls">
+            <div class="accordion-header" role="button" tabindex="0">
+              <div class="acc-title-left">
+                <span class="acc-badge" id="acc-badge-tls">A</span>
+                <h4>TLS / SSL & Certificate Lifecycle</h4>
+              </div>
+              <span class="chevron-icon">▼</span>
+            </div>
+            <div class="accordion-content">
+              <div class="tls-timeline-card" id="tls-timeline-card">
+                <div class="timeline-meta">
+                  <span>Issued: <strong id="tls-issued-date">–</strong></span>
+                  <span>Expires: <strong id="tls-expiry-date">–</strong></span>
+                  <span>Remaining: <strong id="tls-remaining-days">–</strong></span>
+                </div>
+                <div class="timeline-bar-wrap">
+                  <div class="timeline-progress" id="tls-timeline-progress"></div>
+                </div>
+              </div>
+              <dl class="data-grid" id="tls-data-grid"></dl>
+            </div>
+          </div>
+
+          <!-- 2. DNS & DNSSEC -->
+          <div class="accordion-card" id="acc-dns">
+            <div class="accordion-header" role="button" tabindex="0">
+              <div class="acc-title-left">
+                <span class="acc-badge" id="acc-badge-dns">DNS</span>
+                <h4>DNS Records & DNSSEC Chain</h4>
+              </div>
+              <span class="chevron-icon">▼</span>
+            </div>
+            <div class="accordion-content">
+              <div class="dnssec-banner" id="dnssec-banner">
+                <span class="dnssec-status-pill" id="dnssec-status-pill">NOT_ENABLED</span>
+                <span class="dnssec-desc" id="dnssec-desc">Checking DNSSEC status...</span>
+              </div>
+              <div class="dns-tree" id="dns-tree"></div>
+            </div>
+          </div>
+
+          <!-- 3. HTTP Headers & CSP -->
+          <div class="accordion-card" id="acc-headers">
+            <div class="accordion-header" role="button" tabindex="0">
+              <div class="acc-title-left">
+                <span class="acc-badge" id="acc-badge-headers">HEADERS</span>
+                <h4>HTTP Security Headers & CSP Evaluator</h4>
+              </div>
+              <span class="chevron-icon">▼</span>
+            </div>
+            <div class="accordion-content">
+              <div class="csp-evaluator-card" id="csp-evaluator-card">
+                <div class="csp-eval-header">
+                  <strong>Content-Security-Policy (CSP) Deep Evaluation</strong>
+                  <span class="csp-grade-tag" id="csp-grade-tag">STRONG</span>
+                </div>
+                <ul class="csp-issues-list" id="csp-issues-list"></ul>
+              </div>
+              <dl class="data-grid" id="headers-data-grid"></dl>
+            </div>
+          </div>
+
+          <!-- 4. Cookie Security Flags -->
+          <div class="accordion-card" id="acc-cookies">
+            <div class="accordion-header" role="button" tabindex="0">
+              <div class="acc-title-left">
+                <span class="acc-badge" id="acc-badge-cookies">COOKIES</span>
+                <h4>Cookie Properties & Attributes</h4>
+              </div>
+              <span class="chevron-icon">▼</span>
+            </div>
+            <div class="accordion-content">
+              <div class="cookies-summary-bar" id="cookies-summary-bar"></div>
+              <div class="cookies-table-wrap" id="cookies-table-wrap"></div>
+            </div>
+          </div>
+
+          <!-- 5. Threat Intelligence & Reputation -->
+          <div class="accordion-card" id="acc-threat">
+            <div class="accordion-header" role="button" tabindex="0">
+              <div class="acc-title-left">
+                <span class="acc-badge" id="acc-badge-threat">THREAT INTEL</span>
+                <h4>Threat Intelligence & Blocklists</h4>
+              </div>
+              <span class="chevron-icon">▼</span>
+            </div>
+            <div class="accordion-content">
+              <div class="threat-providers-grid" id="threat-providers-grid"></div>
+            </div>
+          </div>
+
+          <!-- 6. Email Security (SPF & DMARC) -->
+          <div class="accordion-card" id="acc-email">
+            <div class="accordion-header" role="button" tabindex="0">
+              <div class="acc-title-left">
+                <span class="acc-badge" id="acc-badge-email">EMAIL</span>
+                <h4>Email Spoofing Defenses (SPF & DMARC)</h4>
+              </div>
+              <span class="chevron-icon">▼</span>
+            </div>
+            <div class="accordion-content">
+              <dl class="data-grid" id="email-data-grid"></dl>
+            </div>
+          </div>
+
+          <!-- 7. Technology & Known CVEs -->
+          <div class="accordion-card" id="acc-cves">
+            <div class="accordion-header" role="button" tabindex="0">
+              <div class="acc-title-left">
+                <span class="acc-badge" id="acc-badge-cves">CVEs</span>
+                <h4>Technology Stack & Known Vulnerabilities (CVE)</h4>
+              </div>
+              <span class="chevron-icon">▼</span>
+            </div>
+            <div class="accordion-content">
+              <div class="cve-summary-banner" id="cve-summary-banner">
+                <span class="cve-count-pill" id="cve-count-pill">0 KNOWN CVEs</span>
+                <span class="cve-desc-text" id="cve-desc-text">Fingerprinted software versions compared against known vulnerability catalogs.</span>
+              </div>
+              <div class="tech-chips-list" id="tech-chips-list"></div>
+              <div class="cve-items-list" id="cve-items-list"></div>
+              <dl class="data-grid" id="infra-data-grid" style="margin-top: 14px;"></dl>
+            </div>
+          </div>
+
+          <!-- 8. Redirect Chain Flow -->
+          <div class="accordion-card" id="acc-redirects">
+            <div class="accordion-header" role="button" tabindex="0">
+              <div class="acc-title-left">
+                <span class="acc-badge" id="acc-badge-redirects">REDIRECTS</span>
+                <h4>Redirect Chain & Hop Latency</h4>
+              </div>
+              <span class="chevron-icon">▼</span>
+            </div>
+            <div class="accordion-content">
+              <div class="redirect-flow" id="redirect-flow"></div>
+            </div>
+          </div>
+
+          <!-- 9. Passive Subdomain Discovery -->
+          <div class="accordion-card" id="acc-subdomains">
+            <div class="accordion-header" role="button" tabindex="0">
+              <div class="acc-title-left">
+                <span class="acc-badge" id="acc-badge-subdomains">SUBDOMAINS</span>
+                <h4>Discovered Subdomains (Certificate Transparency)</h4>
+              </div>
+              <span class="chevron-icon">▼</span>
+            </div>
+            <div class="accordion-content">
+              <div class="subdomains-wrap" id="subdomains-wrap"></div>
+            </div>
+          </div>
+
+                    <!-- 10. Domain Legitimacy & Legal Identity Evidence -->
+          <div class="accordion-card" id="acc-legitimacy">
+            <div class="accordion-header" role="button" tabindex="0">
+              <div class="acc-title-left">
+                <span class="acc-badge" id="acc-badge-legit">IDENTITY</span>
+                <h4>Domain Legitimacy & Organization Identity Evidence</h4>
+              </div>
+              <span class="chevron-icon">▼</span>
+            </div>
+            <div class="accordion-content">
+              <div class="identity-status-banner" id="identity-status-banner">
+                <div class="identity-badge-pill" id="identity-badge-pill">DV (Domain Validation)</div>
+                <p class="identity-explanation" id="identity-explanation-text">Explanation loading...</p>
+              </div>
+              <dl class="data-grid" id="legit-data-grid"></dl>
+            </div>
+          </div>
+
+          <!-- 11. Raw Technical Data -->
+          <div class="accordion-card" id="acc-raw">
+            <div class="accordion-header" role="button" tabindex="0">
+              <div class="acc-title-left">
+                <span class="acc-badge">RAW JSON</span>
+                <h4>Raw Assessment Data (For Security Analysts)</h4>
+              </div>
+              <span class="chevron-icon">▼</span>
+            </div>
+            <div class="accordion-content">
+              <div class="raw-data-controls">
+                <button type="button" class="action-btn secondary small" id="copy-json-btn">Copy JSON</button>
+              </div>
+              <pre class="raw-json-block" id="raw-json-block"></pre>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </section>
+
+    <!-- SECTION 4: Error Box -->
+    <section id="error-section" class="error-section" hidden>
+      <div class="error-card">
+        <div class="error-icon">⚠</div>
+        <h3 class="error-title">Analysis Interrupted</h3>
+        <p class="error-desc" id="error-desc-text"></p>
+        <button type="button" class="primary-btn" id="error-retry-btn">Return to Search</button>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <p>Centinela Web Security & Legitimacy Analyzer · Cloudflare Serverless Architecture · <a href="https://github.com/azagramac/centinela" target="_blank" rel="noopener noreferrer">GitHub Repository</a></p>
+    </footer>
+
+  </div>
+
+  <script src="app.js?v=2.4.0"></script>
+</body>
+</html>
