@@ -1,6 +1,6 @@
 # 🛡️ Centinela — Automated Web Security & Legitimacy Analyzer
 
-[![Version](https://img.shields.io/badge/version-2.4.0-blue.svg?style=flat-square)](#)
+[![Version](https://img.shields.io/badge/version-2.4.4-blue.svg?style=flat-square)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg?style=flat-square)](#)
 [![Security: SSRF Hardened](https://img.shields.io/badge/Security-SSRF%20Hardened-cyan.svg?style=flat-square)](#)
 [![Zero Synthetic Data](https://img.shields.io/badge/Data%20Policy-100%25%20Live%20Dynamic%20Data-purple.svg?style=flat-square)](#)
@@ -108,13 +108,24 @@ When you query a domain, Centinela executes parallel, non-intrusive security aud
 
 ---
 
-### ☣️ 6. Threat Intelligence & Real-Time Blocklists
-* 🪱 **URLhaus (Abuse.ch)**: Active malware payload distribution tracking.
-* 🤖 **ThreatFox (Abuse.ch)**: Botnet Command & Control (C2) IOC tracking.
-* 🚫 **Spamhaus DBL**: Global spam, phishing, and malware domain blocklists.
-* 🎣 **OpenPhish / Community Feeds**: Active credential harvesting feeds.
-* 🔍 **Google Safe Browsing v4**: Enterprise detection (selective opt-in checkbox).
-* 🛡️ **VirusTotal v3**: Multi-engine antivirus scanning (selective opt-in checkbox).
+### ☣️ 6. Threat Intelligence & Multi-Engine Antivirus Suite
+Centinela features an enterprise-grade multi-engine threat intelligence suite combining live public IOC repositories with on-demand commercial feeds:
+
+* **🛡️ VirusTotal v3 Enterprise Multi-Engine Deep Inspection**:
+  * 📊 **Proportional Engine Visual Meter**: Displays exact detection distribution (*Malicious, Suspicious, Harmless, Undetected*) across 70+ to 90+ antivirus vendors.
+  * 🩻 **Vendor-Level Threat Table**: If any detection occurs, an interactive breakdown details the **Security Vendor**, **Classification Category** (*malicious / suspicious*), and **Exact Signature / Threat Result** (e.g. *Kaspersky: Phishing*, *Sophos: Trojan Downloader*, *Fortinet: Malicious URL*).
+  * 🟢 **Top Clean Verification Engines**: When clean, displays top security vendors (Kaspersky, Bitdefender, Microsoft Defender, Google, ESET, Sophos, Fortinet, Avast, Cloudflare, etc.) confirming the domain is safe.
+  * ⭐ **Community Reputation & Categories**: Extracts community reputation scoring (e.g. `+140`) and industrial taxonomy tags.
+* **🔍 Google Safe Browsing v4 Vector Audit**:
+  * 🦠 **Malware Payload Distribution**: Detects active software payloads targeting visitor endpoints.
+  * 🎣 **Social Engineering & Phishing**: Flags deceptive credential harvesting schemes.
+  * ⚠️ **Unwanted Software**: Identifies bundled deceptive binaries.
+  * 📱 **Potentially Harmful Applications**: Flags mobile and web threats.
+* **🌐 Open Threat Feeds & IOC Repositories (Always Active)**:
+  * 🪱 **URLhaus (Abuse.ch)**: Active malware distribution URLs and payloads.
+  * 🤖 **ThreatFox (Abuse.ch)**: Botnet Command & Control (C2) servers and Indicators of Compromise.
+  * 🚫 **Spamhaus DBL**: Domain Blocklist with intelligent open-resolver status handling (`127.255.255.x`).
+  * 🎣 **OpenPhish**: Real-time phishing indicators.
 
 ---
 
@@ -177,10 +188,15 @@ Every assessment generates a structured diagnostic report with actionable insigh
 
 ---
 
-### 3. Unique Scan IDs & Historical Comparison
+### 3. Compact Alphanumeric Permalinks & Real-Time Input Sanitization
+* **🔗 Compact Alphanumeric Scan Tokens (`?s=...`)**:
+  * Clicking **"Copy Link"** generates a URL-Safe Base64 alphanumeric token encoding the target domain and active API flags (e.g. `https://centinela.azagra.dev/?s=eyJ1IjoiYmxvZy5hemFncmEuZGV2IiwiZyI6MSwidiI6MX0`).
+  * Opening a shared token instantly decodes parameters, restores checkbox states, and executes the audit without requiring a database.
+* **🔤 Real-Time Lowercase Normalization**:
+  * Enforces real-time lowercase transformation in the search input while preserving typing cursor positions (`selectionStart`/`selectionEnd`) and handling pasted text.
+  * Native mobile suppression (`autocapitalize="none"`, `autocorrect="off"`, `spellcheck="false"`) prevents accidental uppercase domain queries on iOS and Android.
 * **Unique Scan ID**: Every audit generates a permanent identifier (e.g. `cnt-6a9154b7-e8fed5`).
-* **Shareable Permalinks**: Direct links (`https://centinela.azagra.dev/?id=cnt-...`) allow 1-click sharing of exact point-in-time assessments.
-* **Historical Evolution Engine**: Re-scanning a domain automatically compares the new results with past scans, highlighting score improvements (`+15 pts Improvement`), category score deltas, and resolved security findings.
+* **Historical Evolution Engine**: Re-scanning a domain automatically compares new results with past scans, highlighting score improvements (`+15 pts Improvement`), category score deltas, and resolved security findings.
 
 ---
 
@@ -297,6 +313,20 @@ If you recently enabled DoH or ECH, your browser may retain previous unencrypted
 4. **Unsupported Resolvers**: Custom DNS servers or outdated Pi-hole instances that strip or drop DNS Type 65 queries.
 
 ---
+
+---
+
+## ⚡ Cloudflare Serverless Architecture & API Secrets
+
+Centinela runs as a zero-maintenance, globally distributed serverless application:
+
+* **Frontend**: Hosted on GitHub Pages (`centinela.azagra.dev`) over HTTPS with automated asset cache-busting (`v=2.4.x`).
+* **Backend API**: Powered by Cloudflare Workers routing `/analyze` and `/client-diag`.
+* **Optional API Secrets**:
+  * To enable Google Safe Browsing and VirusTotal on-demand queries, configure the following secrets in Cloudflare Dashboard (*Workers & Pages > centinela > Settings > Variables and Secrets*):
+    * `GSB_API_KEY`: Google Cloud Safe Browsing API v4 Key.
+    * `VIRUSTOTAL_API_KEY`: VirusTotal v3 API Key.
+  * Queries to GSB and VirusTotal are strictly **opt-in via UI checkboxes** to preserve API quotas.
 
 ## 📄 License
 
