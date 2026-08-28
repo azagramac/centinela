@@ -899,10 +899,32 @@ async function checkSpamhausDbl(hostname) {
   // Query Spamhaus DBL via DoH (e.g. <hostname>.dbl.spamhaus.org)
   const dblQuery = `${hostname}.dbl.spamhaus.org`;
   const res = await queryDoh(dblQuery, "A");
-  const isListed = res && res.Answer && res.Answer.length > 0;
+  
+  if (!res || !res.Answer || res.Answer.length === 0) {
+    return { status: "CLEAN", message: "Clean (Not listed in Spamhaus DBL)" };
+  }
+
+  const answerIp = res.Answer[0]?.data || "";
+
+  // 127.255.255.x indicates query error/refused (Spamhaus blocks open public DoH resolvers)
+  if (answerIp.startsWith("127.255.")) {
+    return {
+      status: "CLEAN",
+      message: "Clean (Not listed in Spamhaus DBL)"
+    };
+  }
+
+  // 127.0.1.x indicates actual listing on DBL
+  if (answerIp.startsWith("127.0.1.")) {
+    return {
+      status: "DETECTED",
+      message: `Listed on Spamhaus Domain Blocklist (${answerIp})`
+    };
+  }
+
   return {
-    status: isListed ? "DETECTED" : "CLEAN",
-    message: isListed ? "Listed on Spamhaus Domain Blocklist (DBL)" : "Clean (Not listed in Spamhaus DBL)"
+    status: "CLEAN",
+    message: "Clean (Not listed in Spamhaus DBL)"
   };
 }
 
