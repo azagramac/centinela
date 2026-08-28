@@ -1,3 +1,20 @@
+// Robust fetch with strict timeout to prevent upstream API hangs
+async function fetchWithTimeout(resource, options = {}, timeoutMs = 4000) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(resource, {
+      ...options,
+      signal: controller.signal
+    });
+    clearTimeout(id);
+    return response;
+  } catch (error) {
+    clearTimeout(id);
+    throw error;
+  }
+}
+
 /**
  * Centinela — Web Security & Legitimacy Analyzer Engine
  * Cloudflare Worker Serverless Backend
@@ -291,10 +308,10 @@ function isPrivateOrRestrictedIp(ip) {
 
 async function queryDoh(name, type) {
   const url = `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(name)}&type=${type}&do=true`;
-  const res = await fetch(url, {
+  const res = await fetchWithTimeout(url, {
     headers: { "Accept": "application/dns-json" },
     cf: { cacheTtl: 300 }
-  });
+  }, 3000);
   if (!res.ok) return null;
   return await res.json();
 }
@@ -869,11 +886,11 @@ async function analyzeThreatIntelligence(targetUrlStr, hostname, env, opts = {})
 }
 
 async function checkUrlhaus(hostname) {
-  const resp = await fetch("https://urlhaus-api.abuse.ch/v1/host/", {
+  const resp = await fetchWithTimeout("https://urlhaus-api.abuse.ch/v1/host/", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: `host=${encodeURIComponent(hostname)}`
-  });
+  }, 3000);
   if (!resp.ok) return { status: "CLEAN", count: 0, message: "Clean (No malware distribution records)" };
   const data = await resp.json();
   const isDetected = data.query_status === "ok" && (data.urls || []).length > 0;
@@ -886,11 +903,11 @@ async function checkUrlhaus(hostname) {
 
 async function checkThreatFox(hostname) {
   const body = JSON.stringify({ query: "search_ioc", search_term: hostname });
-  const resp = await fetch("https://threatfox-api.abuse.ch/api/v1/", {
+  const resp = await fetchWithTimeout("https://threatfox-api.abuse.ch/api/v1/", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body
-  });
+  }, 3000);
   if (!resp.ok) return { status: "CLEAN", count: 0, message: "Clean (No IOCs or C2 activity)" };
   const data = await resp.json();
   const isDetected = data.query_status === "ok" && (data.data || []).length > 0;
@@ -955,11 +972,11 @@ async function checkGoogleSafeBrowsing(targetUrlStr, apiKey) {
       }
     };
 
-    const resp = await fetch(`https://safebrowsing.googleapis.com/v4/threatMatches:find?key=${apiKey}`, {
+    const resp = await fetchWithTimeout(`https://safebrowsing.googleapis.com/v4/threatMatches:find?key=${apiKey}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body)
-    });
+    }, 3000);
     
     if (!resp.ok) {
       const errText = await resp.text();
@@ -989,10 +1006,10 @@ async function checkGoogleSafeBrowsing(targetUrlStr, apiKey) {
 
 async function checkVirusTotal(hostname, apiKey) {
   try {
-    const resp = await fetch(`https://www.virustotal.com/api/v3/domains/${encodeURIComponent(hostname)}`, {
+    const resp = await fetchWithTimeout(`https://www.virustotal.com/api/v3/domains/${encodeURIComponent(hostname)}`, {
       headers: { "x-apikey": apiKey },
       cf: { cacheTtl: 3600 } // Cloudflare edge cache 1 hour to save daily quota
-    });
+    }, 3500);
 
     if (resp.status === 429) {
       return {
@@ -1071,10 +1088,10 @@ async function checkVirusTotal(hostname, apiKey) {
 
 async function discoverSubdomains(hostname) {
   try {
-    const resp = await fetch(`https://crt.sh/?q=%.${encodeURIComponent(hostname)}&output=json`, {
+    const resp = await fetchWithTimeout(`https://crt.sh/?q=%.${encodeURIComponent(hostname)}&output=json`, {
       headers: { "User-Agent": "Centinela-SubdomainScanner/2.0" },
       cf: { cacheTtl: 3600 }
-    });
+    }, 3000);
 
     if (!resp.ok) return { list: [], count: 0 };
     const raw = await resp.json();

@@ -308,8 +308,21 @@ async function loadScanById(scanId) {
       throw new Error(`Report with ID '${scanId}' was not found or has expired.`);
     }
     const data = await resp.json();
+    // Complete all remaining steps smoothly
+    clearInterval(pipelineTimer);
+    PIPELINE_STEPS.forEach(s => {
+      const el = document.getElementById(`p-step-${s.id}`);
+      if (el) {
+        el.className = "pipeline-step done";
+        const icon = el.querySelector(".step-icon");
+        if (icon) icon.textContent = "✓";
+      }
+    });
+
     currentAssessmentData = data;
-    renderAssessmentReport(data);
+    setTimeout(() => {
+      renderAssessmentReport(data);
+    }, 150);
   } catch (err) {
     showError(err.message);
   } finally {
@@ -355,24 +368,37 @@ async function startScan(target) {
     pipelineProgress.appendChild(div);
   });
 
+  const scanStartTime = Date.now();
   let stepIdx = 0;
+
+  // Smooth live progression without fake 100% completion before response
   pipelineTimer = setInterval(() => {
-    if (stepIdx < PIPELINE_STEPS.length) {
+    const elapsedSec = ((Date.now() - scanStartTime) / 1000).toFixed(1);
+    
+    // Advance up to the second-to-last step while waiting
+    if (stepIdx < PIPELINE_STEPS.length - 1) {
       const curEl = document.getElementById(`p-step-${PIPELINE_STEPS[stepIdx].id}`);
       if (curEl) {
         curEl.className = "pipeline-step done";
         curEl.querySelector(".step-icon").textContent = "✓";
       }
       stepIdx++;
-      if (stepIdx < PIPELINE_STEPS.length) {
-        const nextEl = document.getElementById(`p-step-${PIPELINE_STEPS[stepIdx].id}`);
-        if (nextEl) {
-          nextEl.className = "pipeline-step active";
-          nextEl.querySelector(".step-icon").textContent = "⏳";
-        }
+      const nextEl = document.getElementById(`p-step-${PIPELINE_STEPS[stepIdx].id}`);
+      if (nextEl) {
+        nextEl.className = "pipeline-step active";
+        nextEl.querySelector(".step-icon").textContent = "⏳";
       }
     }
-  }, 550);
+
+    // Dynamic informative status banner
+    if (loadingTargetUrl) {
+      if (elapsedSec < 3) {
+        loadingTargetUrl.textContent = `${normalized} · Auditing live infrastructure (${elapsedSec}s)`;
+      } else {
+        loadingTargetUrl.textContent = `${normalized} · Synthesizing cryptographic evidence & threat feeds (${elapsedSec}s)`;
+      }
+    }
+  }, 350);
 
   try {
     const checkGsb = document.getElementById("check-gsb")?.checked;
