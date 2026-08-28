@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.DS_Store
+local_dev.py
+local_env.py
+.wrangler/
+.env
+.env.*
+*.log
