@@ -484,12 +484,27 @@
             <div class="accordion-header" role="button" tabindex="0">
               <div class="acc-title-left">
                 <span class="acc-badge" id="acc-badge-threat">THREAT INTEL</span>
-                <h4>Threat Intelligence & Blocklists</h4>
+                <h4>Threat Intelligence & Multi-Engine Security Feeds</h4>
               </div>
               <span class="chevron-icon">▼</span>
             </div>
             <div class="accordion-content">
-              <div class="threat-providers-grid" id="threat-providers-grid"></div>
+              <div class="threat-suite-container" id="threat-suite-container">
+                <!-- Overall Threat Summary -->
+                <div class="threat-summary-bar" id="threat-summary-bar"></div>
+
+                <!-- Dedicated VirusTotal Multi-Engine Detailed Card -->
+                <div class="threat-detail-card" id="threat-vt-card"></div>
+
+                <!-- Dedicated Google Safe Browsing Detailed Card -->
+                <div class="threat-detail-card" id="threat-gsb-card"></div>
+
+                <!-- Open Threat Feeds Sub-grid (URLhaus, ThreatFox, Spamhaus, OpenPhish) -->
+                <div class="threat-feeds-subgroup">
+                  <h5 class="threat-subheading">Public Threat Intelligence Feeds & IOC Repositories</h5>
+                  <div class="threat-providers-grid" id="threat-providers-grid"></div>
+                </div>
+              </div>
             </div>
           </div>
 
