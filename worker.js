@@ -90,9 +90,7 @@ export default {
         rdapResult,
         emailResult,
         threatResult,
-        subdomainsResult,
-        techResult,
-        contentResult
+        subdomainsResult
       ] = await Promise.allSettled([
         analyzeDns(hostname),
         analyzeDnssec(hostname),
@@ -101,9 +99,7 @@ export default {
         analyzeRdap(hostname),
         analyzeEmailSecurity(hostname),
         analyzeThreatIntelligence(targetUrl.toString(), hostname, env),
-        discoverSubdomains(hostname),
-        analyzeTechnologies(targetUrl, hostname),
-        analyzeContentAndDisclosure(targetUrl)
+        discoverSubdomains(hostname)
       ]);
 
       const dnsData = settle(dnsResult, { records: {}, ips: [] });
@@ -114,8 +110,8 @@ export default {
       const emailData = settle(emailResult, { status: "UNKNOWN" });
       const threatData = settle(threatResult, { overall: "NOT_CONFIGURED", providers: {} });
       const subdomainsData = settle(subdomainsResult, { list: [] });
-      const techData = settle(techResult, { technologies: [] });
-      const contentData = settle(contentResult, { securityTxt: false, robotsTxt: false, findings: [] });
+      const techData = await analyzeTechnologiesAndCves(targetUrl, hostname, httpData.headers);
+      const contentData = { securityTxt: false, robotsTxt: false, findings: [] };
 
       // 3. Infrastructure synthesis
       const infraData = synthesizeInfrastructure(dnsData, httpData, hostname);
