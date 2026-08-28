@@ -153,10 +153,15 @@ function setupEventListeners() {
       : window.location.href.split("?")[0];
 
     const url = new URL(baseOrigin);
-    if (currentAssessmentData?.scanId) {
-      url.searchParams.set("id", currentAssessmentData.scanId);
-    } else {
-      url.searchParams.set("url", currentAssessmentData?.hostname || urlInput.value.trim());
+    const target = currentAssessmentData?.hostname || currentAssessmentData?.targetUrl || urlInput.value.trim();
+    if (target) {
+      url.searchParams.set("url", target.toLowerCase());
+    }
+    if (document.getElementById("check-gsb")?.checked) {
+      url.searchParams.set("gsb", "true");
+    }
+    if (document.getElementById("check-vt")?.checked) {
+      url.searchParams.set("vt", "true");
     }
 
     navigator.clipboard.writeText(url.toString());
@@ -215,15 +220,20 @@ function checkUrlParams() {
   const params = new URLSearchParams(window.location.search);
   const scanId = params.get("id") || params.get("scan") || params.get("scanId");
   const target = params.get("url") || params.get("target");
+  const gsb = params.get("gsb") === "true" || params.get("gsb") === "1";
+  const vt = params.get("vt") === "true" || params.get("vt") === "1";
 
-  if (scanId) {
+  if (document.getElementById("check-gsb")) document.getElementById("check-gsb").checked = gsb;
+  if (document.getElementById("check-vt")) document.getElementById("check-vt").checked = vt;
+
+  if (target) {
+    urlInput.value = target.toLowerCase();
+    clearBtn.hidden = false;
+    startScan(target);
+  } else if (scanId) {
     urlInput.value = scanId;
     clearBtn.hidden = false;
     loadScanById(scanId);
-  } else if (target) {
-    urlInput.value = target;
-    clearBtn.hidden = false;
-    startScan(target);
   }
 }
 
