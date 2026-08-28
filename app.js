@@ -297,7 +297,12 @@ async function startScan(target) {
   }, 550);
 
   try {
-    const apiUrl = `${WORKER_URL}?url=${encodeURIComponent(normalized)}`;
+    const checkGsb = document.getElementById("check-gsb")?.checked;
+    const checkVt = document.getElementById("check-vt")?.checked;
+
+    let apiUrl = `${WORKER_URL}?url=${encodeURIComponent(normalized)}`;
+    if (checkGsb) apiUrl += "&gsb=true";
+    if (checkVt) apiUrl += "&vt=true";
     const resp = await fetch(apiUrl).catch(networkErr => {
       throw new Error(`Network connection to Worker failed: ${networkErr.message}. Check that WORKER_URL in app.js is reachable and deployed.`);
     });

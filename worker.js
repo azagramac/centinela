@@ -70,6 +70,9 @@ export default {
       }
 
       const hostname = targetUrl.hostname.toLowerCase();
+      const enableGsb = url.searchParams.get("gsb") === "true" || url.searchParams.get("enableGsb") === "true" || url.searchParams.get("gsb") === "1";
+      const enableVt = url.searchParams.get("vt") === "true" || url.searchParams.get("enableVt") === "true" || url.searchParams.get("vt") === "1";
+      const threatOpts = { enableGsb, enableVt };
 
       // 1. SSRF & IP Validation Guard
       const ssrfCheck = await validateTargetHost(hostname);
@@ -98,7 +101,7 @@ export default {
         analyzeTlsAndCert(hostname),
         analyzeRdap(hostname),
         analyzeEmailSecurity(hostname),
-        analyzeThreatIntelligence(targetUrl.toString(), hostname, env),
+        analyzeThreatIntelligence(targetUrl.toString(), hostname, env, threatOpts),
         discoverSubdomains(hostname)
       ]);
 
