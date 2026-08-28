@@ -1760,7 +1760,13 @@ function corsHeaders() {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    "Cache-Control": "public, max-age=60"
+    "Cache-Control": "public, max-age=60",
+    "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+    "X-Frame-Options": "DENY",
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+    "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; connect-src 'self' https://cloudflare-dns.com https://crypto.cloudflare.com https://centinela.azagra.dev http://localhost:8787; img-src 'self' data: https:; frame-ancestors 'none'; base-uri 'self'; form-action 'self';"
   };
 }
 
