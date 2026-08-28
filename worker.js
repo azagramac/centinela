@@ -1,3 +1,12 @@
+
+function extractApexDomain(hostname) {
+  const parts = hostname.toLowerCase().split(".");
+  if (parts.length >= 2) {
+    return `${parts[parts.length - 2]}.${parts[parts.length - 1]}`;
+  }
+  return hostname;
+}
+
 // Robust fetch with strict timeout to prevent upstream API hangs
 async function fetchWithTimeout(resource, options = {}, timeoutMs = 4000) {
   const controller = new AbortController();

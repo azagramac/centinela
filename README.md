@@ -1,6 +1,6 @@
 # 🛡️ Centinela — Automated Web Security & Legitimacy Analyzer
 
-[![Version](https://img.shields.io/badge/version-2.4.4-blue.svg?style=flat-square)](#)
+[![Version](https://img.shields.io/badge/version-2.4.5-blue.svg?style=flat-square)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg?style=flat-square)](#)
 [![Security: SSRF Hardened](https://img.shields.io/badge/Security-SSRF%20Hardened-cyan.svg?style=flat-square)](#)
 [![Zero Synthetic Data](https://img.shields.io/badge/Data%20Policy-100%25%20Live%20Dynamic%20Data-purple.svg?style=flat-square)](#)
@@ -69,10 +69,12 @@ When you query a domain, Centinela executes parallel, non-intrusive security aud
   * 📬 **`MX` Records**: Mail exchange routing validation.
   * 🏷️ **`TXT` Records**: Verification tokens and policy records.
   * 🔐 **`HTTPS` (Type 65 / RFC 9460)**: Audits published ECH configurations and ALPN parameters for Encrypted Client Hello.
-* **🔐 DNSSEC Signature Chain**:
+* **🔐 DNSSEC Signature Chain & Parent Zone Trust**:
   * 🔗 **`DS` & `DNSKEY` Verification**: Validates parent TLD delegation signer records and cryptographic integrity (`AD` flag).
-* **🛡️ Certificate Authority Authorization (CAA)**:
-  * 📜 Audits CAA policies to prevent unauthorized certificate issuance.
+  * 🌳 **RFC Subdomain DNSSEC Inheritance**: Subdomains that are not independently delegated child zones correctly inherit the cryptographic trust chain from their organizational apex zone.
+* **🛡️ Certificate Authority Authorization (CAA RFC 8659)**:
+  * 📜 Audits CAA policies to restrict unauthorized certificate issuance.
+  * 🔄 **RFC 8659 Tree Climbing**: In compliance with RFC 8659 Section 3, when auditing subdomains without distinct CAA records, Centinela climbs the DNS tree to inspect the parent apex domain's authoritative CAA directives.
 
 ---
 
@@ -88,6 +90,8 @@ When you query a domain, Centinela executes parallel, non-intrusive security aud
 * **🎭 MIME-Sniffing Defense (X-Content-Type-Options)**: Confirms `nosniff` enforcement.
 * **👁️ Privacy Policies**: `Referrer-Policy`, `Permissions-Policy`, `COOP`, `CORP`, and `COEP`.
 
+> 💡 **Static Hosting / GitHub Pages Tip**: For sites hosted on GitHub Pages or static hosts where custom server headers cannot be set natively in code, enable **Cloudflare Edge HSTS** (*SSL/TLS > Edge Certificates > HSTS*) and configure **Cloudflare Transform Rules** (*Rules > Transform Rules > Modify Response Header*) to inject `X-Frame-Options: DENY` and `Content-Security-Policy` automatically at the edge.
+
 ---
 
 ### 🍪 4. Cookie Security & Scope Auditing
@@ -99,11 +103,13 @@ When you query a domain, Centinela executes parallel, non-intrusive security aud
 ---
 
 ### 📧 5. Email Authentication & Anti-Spoofing Defenses
-* 📜 **SPF (Sender Policy Framework)**: Parses `v=spf1` TXT records and authorized sending IPs.
-* 📬 **DMARC**: Evaluates policy enforcement:
-  * 🔴 `p=none` *(Permissive / Monitoring only)*.
-  * 🟡 `p=quarantine` *(Moderate — routes spoofed mail to spam)*.
-  * 🟢 `p=reject` *(Strongest — blocks unauthorized mail)*.
+* 📜 **SPF (Sender Policy Framework)**: Parses `v=spf1` TXT records and authorized sending IPs, with apex domain fallback for subdomains.
+* 📬 **DMARC (RFC 7489 Policy Enforcement & Subdomain Inheritance)**:
+  * Evaluates policy enforcement:
+    * 🔴 `p=none` *(Permissive / Monitoring only)*.
+    * 🟡 `p=quarantine` *(Moderate — routes spoofed mail to spam)*.
+    * 🟢 `p=reject` *(Strongest — blocks unauthorized mail)*.
+  * 🛡️ **Subdomain Inheritance (`sp=` tag)**: Following RFC 7489, subdomains automatically inherit the organizational DMARC policy from `_dmarc.<apex-domain>`, ensuring subdomains are protected against spoofing even if they do not publish a standalone `_dmarc` record.
 * 🔐 **MTA-STS & TLS-RPT**: SMTP transport encryption policies and reporting.
 
 ---
