@@ -9,7 +9,8 @@
 
 export default {
   async fetch(request, env) {
-    const url = new URL(request.url);
+    try {
+      const url = new URL(request.url);
 
     // CORS preflight
     if (request.method === "OPTIONS") {
@@ -31,7 +32,7 @@ export default {
     const isDoh = cf.clientTcpRtt !== undefined && (cf.botManagement ? cf.botManagement.verifiedBot : false);
     const isEch = Boolean(cf.tlsExportedAuthenticator || (cf.tlsCipher && cf.tlsCipher.includes("ECH")));
 
-    return corsResponse({
+    return json({
       isHttps,
       tlsVersion,
       tlsCipher,
@@ -202,6 +203,12 @@ export default {
       endpoint: "/analyze?url=<target-url>",
       version: "2.0.0"
     }, 200);
+    } catch (err) {
+      return json({
+        error: `Internal Analyzer Error: ${err.message}`,
+        details: String(err.stack || err)
+      }, 500);
+    }
   }
 };
 
