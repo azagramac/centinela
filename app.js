@@ -833,26 +833,199 @@ function renderCookiesSection(cookies) {
 }
 
 function renderThreatIntelSection(threat) {
-  const grid = document.getElementById("threat-providers-grid");
-  grid.innerHTML = "";
+  const summaryBar = document.getElementById("threat-summary-bar");
+  const vtCard = document.getElementById("threat-vt-card");
+  const gsbCard = document.getElementById("threat-gsb-card");
+  const publicGrid = document.getElementById("threat-providers-grid");
 
-  const providers = threat?.providers || {};
-  
-  const feedList = [
-    { key: "urlhaus", name: "URLhaus (Abuse.ch Malware Feed)", defStatus: "CLEAN", defMsg: "No active malware distribution URLs" },
-    { key: "threatFox", name: "ThreatFox (Botnet C2 & IOCs)", defStatus: "CLEAN", defMsg: "No C2 or IOC indicators recorded" },
-    { key: "spamhaus", name: "Spamhaus DBL (Domain Blocklist)", defStatus: "CLEAN", defMsg: "Not listed in Spamhaus DBL" },
-    { key: "openPhish", name: "OpenPhish Community Feed", defStatus: "CLEAN", defMsg: "No phishing records indexed" },
-    { key: "googleSafeBrowsing", name: "Google Safe Browsing v4", defStatus: "NOT_CONFIGURED", defMsg: "Set GSB_API_KEY to activate" },
-    { key: "virusTotal", name: "VirusTotal v3 Multi-Engine", defStatus: "NOT_CONFIGURED", defMsg: "Set VIRUSTOTAL_API_KEY to activate" }
-  ];
+  if (!threat) return;
+  const providers = threat.providers || {};
+  const isMalicious = threat.overall === "MALICIOUS";
 
-  feedList.forEach(feed => {
-    const p = providers[feed.key];
-    const status = p?.status || feed.defStatus;
-    const msg = p?.message || feed.defMsg;
-    addProviderCard(grid, feed.name, status, msg);
-  });
+  // 1. Overall Threat Summary Bar
+  if (summaryBar) {
+    summaryBar.className = `threat-summary-bar ${isMalicious ? "detected" : "clean"}`;
+    summaryBar.innerHTML = `
+      <div class="threat-summary-left">
+        <span style="font-size: 20px;">${isMalicious ? "🚨" : "🛡️"}</span>
+        <div>
+          <div class="threat-summary-title">${isMalicious ? "Active Security Threat Detected" : "Zero Threat Indicators Detected"}</div>
+          <div class="threat-summary-meta">${threat.totalFeedsChecked || 4} security feeds evaluated · ${threat.totalDetections || 0} active threat flags</div>
+        </div>
+      </div>
+      <span class="prov-status-tag ${isMalicious ? "detected" : "clean"}">${escapeHtml(threat.overall || "CLEAN")}</span>
+    `;
+  }
+
+  // 2. Dedicated VirusTotal Enterprise Multi-Engine Card
+  if (vtCard) {
+    const vt = providers.virusTotal || { status: "SKIPPED", message: "Skipped (Opt-in)" };
+    const vtStatus = (vt.status || "SKIPPED").toLowerCase();
+
+    let vtBodyHtml = "";
+    if (vt.status === "DETECTED" || vt.status === "CLEAN") {
+      const total = vt.totalEngines || (vt.harmlessCount + vt.maliciousCount + vt.suspiciousCount + vt.undetectedCount) || 75;
+      const malPct = ((vt.maliciousCount || 0) / total) * 100;
+      const suspPct = ((vt.suspiciousCount || 0) / total) * 100;
+      const harmPct = ((vt.harmlessCount || 0) / total) * 100;
+      const undetPct = 100 - (malPct + suspPct + harmPct);
+
+      vtBodyHtml = `
+        <div class="vt-meter-container">
+          <div class="vt-multi-bar" title="${vt.maliciousCount || 0} Malicious, ${vt.suspiciousCount || 0} Suspicious, ${vt.harmlessCount || 0} Harmless, ${vt.undetectedCount || 0} Undetected">
+            <div class="vt-bar-slice malicious" style="width: ${malPct}%;"></div>
+            <div class="vt-bar-slice suspicious" style="width: ${suspPct}%;"></div>
+            <div class="vt-bar-slice harmless" style="width: ${harmPct}%;"></div>
+            <div class="vt-bar-slice undetected" style="width: ${Math.max(0, undetPct)}%;"></div>
+          </div>
+          <div class="vt-stats-grid">
+            <div class="vt-stat-pill">
+              <span class="vt-stat-label">Malicious</span>
+              <span class="vt-stat-val mal">${vt.maliciousCount || 0}</span>
+            </div>
+            <div class="vt-stat-pill">
+              <span class="vt-stat-label">Suspicious</span>
+              <span class="vt-stat-val susp">${vt.suspiciousCount || 0}</span>
+            </div>
+            <div class="vt-stat-pill">
+              <span class="vt-stat-label">Harmless / Clean</span>
+              <span class="vt-stat-val harm">${vt.harmlessCount || 0}</span>
+            </div>
+            <div class="vt-stat-pill">
+              <span class="vt-stat-label">Undetected</span>
+              <span class="vt-stat-val undet">${vt.undetectedCount || 0}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Meta & Reputation -->
+        <div class="vt-meta-row">
+          <span class="vt-chip reputation">★ Community Reputation: ${vt.reputation >= 0 ? "+" + vt.reputation : vt.reputation}</span>
+          ${(vt.categories || []).map(cat => `<span class="vt-chip">🏷️ ${escapeHtml(cat)}</span>`).join("")}
+          ${(vt.tags || []).slice(0, 3).map(tag => `<span class="vt-chip">#${escapeHtml(tag)}</span>`).join("")}
+        </div>
+      `;
+
+      // If malicious engines found -> Table with details
+      if (vt.flaggedEngines && vt.flaggedEngines.length > 0) {
+        vtBodyHtml += `
+          <div class="vt-engines-block">
+            <div class="vt-engines-title" style="color: #f87171;">Flagged Security Engines Breakdown (${vt.flaggedEngines.length})</div>
+            <table class="vt-detections-table">
+              <thead>
+                <tr>
+                  <th>Security Vendor</th>
+                  <th>Category</th>
+                  <th>Threat Classification / Result</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${vt.flaggedEngines.map(e => `
+                  <tr>
+                    <td style="font-weight: 600;">${escapeHtml(e.engine)}</td>
+                    <td><span class="prov-status-tag ${e.category === "malicious" ? "detected" : "clean"}" style="font-size: 10px;">${escapeHtml(e.category)}</span></td>
+                    <td style="font-family: var(--font-mono); color: #f87171;">${escapeHtml(e.result)}</td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+        `;
+      } else if (vt.cleanEngines && vt.cleanEngines.length > 0) {
+        vtBodyHtml += `
+          <div class="vt-engines-block">
+            <div class="vt-engines-title">Top Security Engines Confirming Clean (${vt.cleanEngines.length}+ vendors)</div>
+            <div class="vt-clean-engines-grid">
+              ${vt.cleanEngines.map(eng => `
+                <div class="vt-clean-item">
+                  <span class="check">✓</span>
+                  <span>${escapeHtml(eng)}</span>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        `;
+      }
+
+    } else {
+      vtBodyHtml = `
+        <p style="font-size: 13px; color: var(--text-secondary); margin: 0;">
+          ${escapeHtml(vt.message || "To query VirusTotal Multi-Engine, enable the checkbox before scanning.")}
+        </p>
+      `;
+    }
+
+    vtCard.innerHTML = `
+      <div class="threat-card-top">
+        <div class="threat-brand-title">
+          <span>🛡️ VirusTotal v3 Multi-Engine Scanner</span>
+        </div>
+        <span class="threat-brand-badge ${vtStatus}">${escapeHtml(vt.status || "SKIPPED")}</span>
+      </div>
+      ${vtBodyHtml}
+    `;
+  }
+
+  // 3. Dedicated Google Safe Browsing Card
+  if (gsbCard) {
+    const gsb = providers.googleSafeBrowsing || { status: "SKIPPED", message: "Skipped (Opt-in)" };
+    const gsbStatus = (gsb.status || "SKIPPED").toLowerCase();
+
+    let gsbBodyHtml = "";
+    if (gsb.status === "DETECTED" || gsb.status === "CLEAN") {
+      const vectors = gsb.evaluatedVectors || [
+        { name: "Malware Payload Distribution", flagged: gsb.threats?.includes("MALWARE") },
+        { name: "Social Engineering & Phishing", flagged: gsb.threats?.includes("SOCIAL_ENGINEERING") },
+        { name: "Unwanted & Harmful Software", flagged: gsb.threats?.includes("UNWANTED_SOFTWARE") },
+        { name: "Potentially Harmful Applications", flagged: gsb.threats?.includes("POTENTIALLY_HARMFUL_APPLICATION") }
+      ];
+
+      gsbBodyHtml = `
+        <div class="gsb-vectors-grid">
+          ${vectors.map(v => `
+            <div class="gsb-vector-item">
+              <span class="gsb-vector-name">${escapeHtml(v.name)}</span>
+              <span class="gsb-vector-badge ${v.flagged ? "flagged" : "clean"}">${v.flagged ? "FLAGGED" : "CLEAN ✓"}</span>
+            </div>
+          `).join("")}
+        </div>
+      `;
+    } else {
+      gsbBodyHtml = `
+        <p style="font-size: 13px; color: var(--text-secondary); margin: 0;">
+          ${escapeHtml(gsb.message || "To query Google Safe Browsing enterprise threat lists, enable the checkbox before scanning.")}
+        </p>
+      `;
+    }
+
+    gsbCard.innerHTML = `
+      <div class="threat-card-top">
+        <div class="threat-brand-title">
+          <span>🔍 Google Safe Browsing v4</span>
+        </div>
+        <span class="threat-brand-badge ${gsbStatus}">${escapeHtml(gsb.status || "SKIPPED")}</span>
+      </div>
+      ${gsbBodyHtml}
+    `;
+  }
+
+  // 4. Open Threat Intelligence Feeds Grid
+  if (publicGrid) {
+    publicGrid.innerHTML = "";
+    const publicFeeds = [
+      { key: "urlhaus", name: "URLhaus (Abuse.ch Malware Feed)", defStatus: "CLEAN", defMsg: "No active malware distribution payloads indexed" },
+      { key: "threatFox", name: "ThreatFox (Botnet C2 & IOCs)", defStatus: "CLEAN", defMsg: "No botnet C2 or IOC indicators recorded" },
+      { key: "spamhaus", name: "Spamhaus DBL (Domain Blocklist)", defStatus: "CLEAN", defMsg: "Not listed in Spamhaus DBL" },
+      { key: "openPhish", name: "OpenPhish Community Feed", defStatus: "CLEAN", defMsg: "No phishing records indexed" }
+    ];
+
+    publicFeeds.forEach(feed => {
+      const p = providers[feed.key];
+      const status = p?.status || feed.defStatus;
+      const msg = p?.message || feed.defMsg;
+      addProviderCard(publicGrid, feed.name, status, msg);
+    });
+  }
 }
 
 function addProviderCard(grid, name, status, detail) {

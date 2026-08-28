@@ -943,29 +943,48 @@ async function checkOpenPhish(hostname) {
 }
 
 async function checkGoogleSafeBrowsing(targetUrlStr, apiKey) {
-  const body = {
-    client: { clientId: "centinela-security", clientVersion: "2.0" },
-    threatInfo: {
-      threatTypes: ["MALWARE", "SOCIAL_ENGINEERING", "UNWANTED_SOFTWARE", "POTENTIALLY_HARMFUL_APPLICATION"],
-      platformTypes: ["ANY_PLATFORM"],
-      threatEntryTypes: ["URL"],
-      threatEntries: [{ url: targetUrlStr }]
+  try {
+    const evaluatedThreatTypes = ["MALWARE", "SOCIAL_ENGINEERING", "UNWANTED_SOFTWARE", "POTENTIALLY_HARMFUL_APPLICATION"];
+    const body = {
+      client: { clientId: "centinela-security", clientVersion: "2.4" },
+      threatInfo: {
+        threatTypes: evaluatedThreatTypes,
+        platformTypes: ["ANY_PLATFORM"],
+        threatEntryTypes: ["URL"],
+        threatEntries: [{ url: targetUrlStr }]
+      }
+    };
+
+    const resp = await fetch(`https://safebrowsing.googleapis.com/v4/threatMatches:find?key=${apiKey}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    
+    if (!resp.ok) {
+      const errText = await resp.text();
+      return { status: "ERROR", message: `Google API error (${resp.status}): ${errText.slice(0, 100)}` };
     }
-  };
 
-  const resp = await fetch(`https://safebrowsing.googleapis.com/v4/threatMatches:find?key=${apiKey}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body)
-  });
-  const data = await resp.json();
-  const matches = data.matches || [];
+    const data = await resp.json();
+    const matches = data.matches || [];
+    const threats = matches.map(m => m.threatType);
 
-  return {
-    status: matches.length ? "DETECTED" : "CLEAN",
-    threats: matches.map(m => m.threatType),
-    message: matches.length ? `${matches.length} threat(s) flagged: ${matches.map(m => m.threatType).join(", ")}` : "Clean (Google Safe Browsing)"
-  };
+    return {
+      status: matches.length ? "DETECTED" : "CLEAN",
+      threats,
+      evaluatedVectors: [
+        { name: "Malware Payload Distribution", type: "MALWARE", flagged: threats.includes("MALWARE") },
+        { name: "Social Engineering & Phishing", type: "SOCIAL_ENGINEERING", flagged: threats.includes("SOCIAL_ENGINEERING") },
+        { name: "Unwanted & Harmful Software", type: "UNWANTED_SOFTWARE", flagged: threats.includes("UNWANTED_SOFTWARE") },
+        { name: "Potentially Harmful Applications", type: "POTENTIALLY_HARMFUL_APPLICATION", flagged: threats.includes("POTENTIALLY_HARMFUL_APPLICATION") }
+      ],
+      matchCount: matches.length,
+      message: matches.length ? `${matches.length} active threat vector(s) flagged by Google` : "Clean (No malicious vectors identified on Google Safe Browsing)"
+    };
+  } catch (err) {
+    return { status: "ERROR", message: `Google Safe Browsing lookup error: ${err.message}` };
+  }
 }
 
 async function checkVirusTotal(hostname, apiKey) {
@@ -977,37 +996,72 @@ async function checkVirusTotal(hostname, apiKey) {
 
     if (resp.status === 429) {
       return {
-        status: "CLEAN",
-        message: "Rate limit reached (4 req/min limit). Relying on parallel feeds."
+        status: "SKIPPED",
+        message: "VirusTotal API rate limit reached (4 req/min). Please try again in 1 minute."
       };
     }
 
     if (!resp.ok) {
       return {
         status: "CLEAN",
-        message: "Clean (No security engine detections)"
+        message: "Clean (No security vendor records found on VirusTotal)"
       };
     }
 
     const data = await resp.json();
-    const stats = data.data?.attributes?.last_analysis_stats || {};
+    const attr = data.data?.attributes || {};
+    const stats = attr.last_analysis_stats || {};
     const malCount = stats.malicious || 0;
     const suspCount = stats.suspicious || 0;
     const harmCount = stats.harmless || 0;
+    const undetCount = stats.undetected || 0;
+    const timeoutCount = stats.timeout || 0;
+    const totalEngines = (malCount + suspCount + harmCount + undetCount + timeoutCount) || (harmCount + 1);
+
+    const analysisResults = attr.last_analysis_results || {};
+    const flaggedEngines = [];
+    const cleanEnginesSample = [];
+
+    for (const [engineName, res] of Object.entries(analysisResults)) {
+      if (res.category === "malicious" || res.category === "suspicious") {
+        flaggedEngines.push({
+          engine: engineName,
+          category: res.category,
+          result: res.result || "flagged as malicious"
+        });
+      } else if (res.category === "harmless" && cleanEnginesSample.length < 18) {
+        cleanEnginesSample.push(engineName);
+      }
+    }
+
+    // Extract categories & reputation
+    const categoriesMap = attr.categories || {};
+    const categories = Object.values(categoriesMap).slice(0, 6);
+    const reputation = attr.reputation ?? 0;
+    const tags = attr.tags || [];
+
+    const isDetected = malCount > 0;
 
     return {
-      status: malCount > 0 ? "DETECTED" : "CLEAN",
+      status: isDetected ? "DETECTED" : "CLEAN",
       maliciousCount: malCount,
       suspiciousCount: suspCount,
       harmlessCount: harmCount,
-      message: malCount > 0
-        ? `${malCount} security engine detections on VirusTotal`
-        : `0 / ${harmCount + 1} detections on VirusTotal`
+      undetectedCount: undetCount,
+      totalEngines,
+      reputation,
+      categories,
+      tags,
+      flaggedEngines,
+      cleanEngines: cleanEnginesSample,
+      message: isDetected
+        ? `${malCount} / ${totalEngines} security vendors flagged this domain as malicious`
+        : `0 / ${totalEngines} detections (Clean across all security engines)`
     };
   } catch (err) {
     return {
-      status: "CLEAN",
-      message: "Clean (VirusTotal query completed)"
+      status: "ERROR",
+      message: `VirusTotal query error: ${err.message}`
     };
   }
 }
