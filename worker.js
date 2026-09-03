@@ -1482,7 +1482,7 @@ async function evaluateDynamicLegitimacy(hostname, rdapData, tlsData, dnssecData
     dnsAuthorityType,
     isSelfAuthoritativeDns,
     isEstablishedTier1,
-    ageYears: Number(ageYears.toFixed(1)),
+    ageYears: ageYears !== null ? Number(ageYears.toFixed(1)) : null,
     isVeryNew,
     impersonationSignals,
     identityExplanation,
