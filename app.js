@@ -417,9 +417,11 @@ async function startScan(target) {
 
     if (!resp.ok) {
       let errDetail = `Worker returned HTTP ${resp.status} (${resp.statusText})`;
+      let errCode = null;
       try {
         const errJson = JSON.parse(rawText);
         if (errJson.error) errDetail = errJson.error;
+        if (errJson.code) errCode = errJson.code;
       } catch {
         if (rawText.includes("error code: 1042") || rawText.includes("error code: 1001")) {
           errDetail = `Cloudflare Worker route not active or unreachable at ${WORKER_URL}. Ensure Cloudflare Proxy (orange cloud) is enabled.`;
@@ -429,7 +431,9 @@ async function startScan(target) {
           errDetail = `Worker error (${resp.status}): ${rawText.slice(0, 150)}`;
         }
       }
-      throw new Error(errDetail);
+      const scanErr = new Error(errDetail);
+      scanErr.code = errCode;
+      throw scanErr;
     }
 
     let data;
@@ -456,16 +460,26 @@ async function startScan(target) {
 
   } catch (err) {
     clearInterval(pipelineTimer);
-    showError(err.message);
+    showError(err.message, err.code);
   } finally {
     scanBtn.disabled = false;
   }
 }
 
-function showError(msg) {
+function showError(msg, code = null) {
   loadingSection.hidden = true;
   resultsSection.hidden = true;
   heroSection.hidden = true;
+  const errorTitleEl = document.querySelector(".error-title");
+  if (errorTitleEl) {
+    if (code === "NXDOMAIN" || (msg && msg.includes("NXDOMAIN"))) {
+      errorTitleEl.textContent = "Domain Not Found (NXDOMAIN)";
+    } else if (code === "SSRF_BLOCKED") {
+      errorTitleEl.textContent = "Target Host Restricted";
+    } else {
+      errorTitleEl.textContent = "Analysis Interrupted";
+    }
+  }
   errorDescText.textContent = msg;
   errorSection.hidden = false;
 }
