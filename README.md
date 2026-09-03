@@ -1,6 +1,6 @@
 # 🛡️ Centinela — Automated Web Security & Legitimacy Analyzer
 
-[![Version](https://img.shields.io/badge/version-2.4.5-blue.svg?style=flat-square)](#)
+[![Version](https://img.shields.io/badge/version-2.4.6-blue.svg?style=flat-square)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg?style=flat-square)](#)
 [![Security: SSRF Hardened](https://img.shields.io/badge/Security-SSRF%20Hardened-cyan.svg?style=flat-square)](#)
 [![Zero Synthetic Data](https://img.shields.io/badge/Data%20Policy-100%25%20Live%20Dynamic%20Data-purple.svg?style=flat-square)](#)
@@ -208,6 +208,7 @@ Every assessment generates a structured diagnostic report with actionable insigh
 
 ### 4. Zero-Trust Backend Architecture
 * **🛑 Anti-SSRF & DNS Rebinding Guard**: All target hostnames and redirect hops are validated against comprehensive private subnet filters (RFC 1918 `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, RFC 6598 `100.64.0.0/10`, loopbacks `127.0.0.0/8`, link-local `169.254.0.0/16`, and IPv6 `fc00::/7`).
+* **🔎 Pre-flight DNS & NXDOMAIN Validation**: Real-time DoH pre-flight validation checks `A`, `AAAA`, `CNAME`, `NS`, and `SOA` records before running analyzer pipelines. Domains returning `NXDOMAIN` (`Status: 3`) or zero DNS records are immediately halted with dedicated error messaging, eliminating false default scores.
 * **⚖️ 100% Live Dynamic Data Policy**: Zero synthetic or mock data in production. Every metric is computed in real time from authoritative registries and direct protocol handshakes.
 * **📐 Fully Explainable Scoring**: Every point added or deducted is accompanied by technical evidence, security impact, and recommendations.
 
