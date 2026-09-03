@@ -1,6 +1,6 @@
 # 🛡️ Centinela — Automated Web Security & Legitimacy Analyzer
 
-[![Version](https://img.shields.io/badge/version-2.4.6-blue.svg?style=flat-square)](#)
+[![Version](https://img.shields.io/badge/version-2.4.7-blue.svg?style=flat-square)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg?style=flat-square)](#)
 [![Security: SSRF Hardened](https://img.shields.io/badge/Security-SSRF%20Hardened-cyan.svg?style=flat-square)](#)
 [![Zero Synthetic Data](https://img.shields.io/badge/Data%20Policy-100%25%20Live%20Dynamic%20Data-purple.svg?style=flat-square)](#)
