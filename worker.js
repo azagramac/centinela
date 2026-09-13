@@ -234,11 +234,10 @@ export default {
       return json(assessment);
     }
 
-    return json({
-      message: "Centinela Web Security & Legitimacy Analyzer API",
-      endpoint: "/analyze?url=<target-url>",
-      version: "2.0.0"
-    }, 200);
+    if (env.ASSETS) {
+      return env.ASSETS.fetch(request);
+    }
+    return fetch(request);
     } catch (err) {
       return json({
         error: `Internal Analyzer Error: ${err.message}`,

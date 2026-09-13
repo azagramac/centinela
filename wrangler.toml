@@ -2,6 +2,9 @@ name = "centinela"
 main = "worker.js"
 compatibility_date = "2024-08-28"
 
+[assets]
+directory = "."
+
 [observability.logs]
 enabled = true
 invocation_logs = true
