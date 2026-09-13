@@ -90,7 +90,7 @@ When you query a domain, Centinela executes parallel, non-intrusive security aud
 * **🎭 MIME-Sniffing Defense (X-Content-Type-Options)**: Confirms `nosniff` enforcement.
 * **👁️ Privacy Policies**: `Referrer-Policy`, `Permissions-Policy`, `COOP`, `CORP`, and `COEP`.
 
-> 💡 **Static Hosting / GitHub Pages Tip**: For sites hosted on GitHub Pages or static hosts where custom server headers cannot be set natively in code, enable **Cloudflare Edge HSTS** (*SSL/TLS > Edge Certificates > HSTS*) and configure **Cloudflare Transform Rules** (*Rules > Transform Rules > Modify Response Header*) to inject `X-Frame-Options: DENY` and `Content-Security-Policy` automatically at the edge.
+> 💡 **Serverless & Edge Deployment Tip**: For applications hosted on Cloudflare Workers & Assets, security headers are returned directly by the Worker and reinforced via **Cloudflare Edge HSTS** (*SSL/TLS > Edge Certificates > HSTS*) and **Cloudflare Transform Rules** (*Rules > Transform Rules > Modify Response Header*) to inject `X-Frame-Options: DENY` and `Content-Security-Policy` automatically at the edge.
 
 ---
 
@@ -327,8 +327,8 @@ If you recently enabled DoH or ECH, your browser may retain previous unencrypted
 
 Centinela runs as a zero-maintenance, globally distributed serverless application:
 
-* **Frontend**: Hosted on GitHub Pages (`centinela.azagra.dev`) over HTTPS with automated asset cache-busting (`v=2.4.x`).
-* **Backend API**: Powered by Cloudflare Workers routing `/analyze` and `/client-diag`.
+* **Unified Architecture**: Hosted 100% natively on **Cloudflare Workers & Static Assets** (`centinela.azagra.dev`) over HTTPS with global edge delivery and asset cache-busting (`v=2.4.x`).
+* **Serverless Backend Engine**: Powered by Cloudflare Workers handling live security pipelines, DoH queries, RDAP calculation, and `/analyze` / `/client-diag` API endpoints.
 * **Optional API Secrets**:
   * To enable Google Safe Browsing and VirusTotal on-demand queries, configure the following secrets in Cloudflare Dashboard (*Workers & Pages > centinela > Settings > Variables and Secrets*):
     * `GSB_API_KEY`: Google Cloud Safe Browsing API v4 Key.
